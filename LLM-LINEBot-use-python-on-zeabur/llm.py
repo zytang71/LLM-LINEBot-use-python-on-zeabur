@@ -1,9 +1,17 @@
 from prompt import Prompt
+
 import os
+from dotenv import load_dotenv
 from openai import OpenAI
 import pyimgur
 
 client = OpenAI()
+
+# 拼出 env 檔路徑
+env_path = os.path.join(os.path.dirname(__file__), "api.env")
+# 載入 .env 檔(openi_api_key.env)
+load_dotenv(env_path)
+# 設定 API key
 
 client.api_key = os.getenv("OPENAI_API_KEY")
 
