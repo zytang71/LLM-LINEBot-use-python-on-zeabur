@@ -1,22 +1,23 @@
 import os
-from dotenv import load_dotenv
-
-# 拼出 env 檔路徑
-env_path = os.path.join(os.path.dirname(__file__), "api.env")
-# 載入 .env 檔(openi_api_key.env)
-load_dotenv(env_path)
-# 設定 API key
-api_key = os.getenv("OPENAI_API_KEY")
+from linebot import LineBotApi, WebhookHandler
+from linebot.exceptions import InvalidSignatureError
+from linebot.models import MessageEvent, TextMessage, TextSendMessage, ImageMessage, ImageSendMessage, QuickReply, QuickReplyButton, MessageAction
 
 chat_language = os.getenv("INIT_LANGUAGE", default = "zh-TW")
 
-MSG_LIST_LIMIT = int(os.getenv("MSG_LIST_LIMIT", default = 7))
+#如果環境變數裡面有設定SG_LIST_LIMIT的值就直接用，沒設定的話就用default的(7句話)
+MSG_LIST_LIMIT = int(os.getenv("MSG_LIST_LIMIT", default = 10))
 LANGUAGE_TABLE = {
   "zh-TW": "哈囉！",
   "en": "Hello!"
 }
 
-AI_GUIDELINES = '你是一個AI助教，如果同學詢問資訊、科技、通訊的問題會用國小5年級的程度解釋，並且直接回覆問題，並且提供可查證資料的網址，詢問專題構想時會用蘇格拉底教學法代替老師初步回應，並提供可能相關的網址，網址一定要正確否則不提供，如果有需要會提醒學生跟老師確認。如果遇到數學計算類的問題尤其是大量的計算時，請分段逐步地計算，最好可以重複計算兩三次確保正確性，並確保計算正確，最後請直接講結果就好。'
+
+
+AI_GUIDELINES = ("你是一名資訊工程學系的助教，同學如果問你相關問題，需要你以專業的口吻回復他，並且尊以下規則 : "
+                "1. 圖片相關的問題請回顧對話內容中的圖片描述。"
+                "2. 如果碰到數學運算，請調用數學運算工具運算，請你一定要進行分段運算，並且算過兩次確保答案是正確的。"
+                "3. 我需要你做計算，但請仔細思考每個步驟，不要列出運算過程，只需要給出最終結果。")
 
 class Prompt:
     """
@@ -31,8 +32,9 @@ class Prompt:
         self.msg_list.append(
             {
                 "role": "system", 
-                "content": f"{LANGUAGE_TABLE[chat_language]}, {AI_GUIDELINES})"
-             })    
+                "content": f"{LANGUAGE_TABLE[chat_language]}, {AI_GUIDELINES}"
+             })
+        
     def add_msg(self, new_msg):
         """
         Adds a new message to the prompt.
@@ -40,6 +42,7 @@ class Prompt:
         Args:
         - new_msg (str): the new message to be added
         """
+        #如果大於10句話，就pop掉之前的對話
         if len(self.msg_list) >= MSG_LIST_LIMIT:
             self.msg_list.pop(0)
         self.msg_list.append({"role": "user", "content": new_msg})
